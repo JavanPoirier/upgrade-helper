@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react'
 import styled from '@emotion/styled'
 import { Alert } from 'antd'
+import React, { useCallback, useEffect, useState } from 'react'
 import { parseDiff, withChangeSelect } from 'react-diff-view'
 import 'react-diff-view/style/index.css'
 import { getDiffPatchURL } from '../../utils'
-import DiffSection from './Diff/DiffSection'
-import DiffLoading from './Diff/DiffLoading'
-import UsefulContentSection from './UsefulContentSection'
-import ViewStyleOptions from './Diff/DiffViewStyleOptions'
-import CompletedFilesCounter from './CompletedFilesCounter'
 import { AppNameWarning } from './AppNameWarning'
+import CompletedFilesCounter from './CompletedFilesCounter'
+import DiffLoading from './Diff/DiffLoading'
+import DiffSection from './Diff/DiffSection'
+import ViewStyleOptions from './Diff/DiffViewStyleOptions'
+import UsefulContentSection from './UsefulContentSection'
 
 const Container = styled.div`
   width: 90%;
@@ -66,8 +66,8 @@ const DiffViewer = ({
     text => {
       if (!appName) return text
       return text
-        .replace(/RnDiffApp/g, appName)
-        .replace(/rndiffapp/g, appName.toLowerCase())
+        .replace(/YiRNTemplateApp/g, appName)
+        .replace(/YiReactApp/g, appName.toLowerCase())
     },
     [appName]
   )

@@ -3,9 +3,9 @@
   "name": "Upgrade your React Native Apps",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "https://www.youi.tv/wp-content/uploads/2016/09/32x32_YouiFavicon.png",
       "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "type": "image/png"
     }
   ],
   "start_url": ".",
