@@ -32,10 +32,9 @@ export const getVersionsInDiff = ({ fromVersion, toVersion }) => {
 }
 
 export const getChangelogURL = ({ version }) =>
-  `https://github.com/react-native-community/releases/blob/master/CHANGELOG.md#${version.replace(
-    '.',
-    ''
-  )}`
+  `https://developer.youi.tv/latest/Content/ReleaseNotes/ReleaseNotes${version
+    .substring(0, version.length - 1)
+    .replace(/\./g, '')}.htm`
 
 // settings constants
 export const SHOW_LATEST_RCS = 'Show latest release candidates'
