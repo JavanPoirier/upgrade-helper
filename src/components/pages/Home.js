@@ -1,12 +1,14 @@
+import React, { useState, useEffect } from 'react'
 import styled from '@emotion/styled'
 import { Card } from 'antd'
-import React, { useEffect, useState } from 'react'
-import ReactGA from 'react-ga'
 import GitHubButton from 'react-github-btn'
-import { homepage } from '../../../package.json'
-import { SHOW_LATEST_RCS } from '../../utils'
-import DiffViewer from '../common/DiffViewer'
+import ReactGA from 'react-ga'
 import VersionSelector from '../common/VersionSelector'
+import DiffViewer from '../common/DiffViewer'
+import Settings from '../common/Settings'
+import { homepage } from '../../../package.json'
+import logo from '../../assets/logo.svg'
+import { SHOW_LATEST_RCS } from '../../utils'
 
 const Page = styled.div`
   display: flex;
@@ -86,18 +88,16 @@ const Home = () => {
       <Container>
         <TitleContainer>
           <LogoImg
-            alt="You.i upgrade helper logo"
-            title="You.i upgrade helper logo"
-            src={
-              'https://www.youi.tv/wp-content/themes/youi-v3/assets/images/youi-logo-pink.svg'
-            }
+            alt="React Native upgrade helper logo"
+            title="React Native upgrade helper logo"
+            src={logo}
           />
 
           <a href={homepage}>
-            <TitleHeader>You.i Engine One upgrade helper</TitleHeader>
+            <TitleHeader>React Native upgrade helper</TitleHeader>
           </a>
 
-          {/* <StarButton
+          <StarButton
             href="https://github.com/react-native-community/upgrade-helper"
             data-icon="octicon-star"
             data-show-count="true"
@@ -110,7 +110,7 @@ const Home = () => {
             handleSettingsChange={handleSettingsChange}
             appName={appName}
             setAppName={setAppName}
-          /> */}
+          />
         </TitleContainer>
 
         <VersionSelector

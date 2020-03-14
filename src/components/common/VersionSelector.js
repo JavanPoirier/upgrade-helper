@@ -1,8 +1,8 @@
+import React, { Fragment, useState, useEffect, useRef } from 'react'
 import styled from '@emotion/styled'
-import { Button } from 'antd'
-import queryString from 'query-string'
-import React, { Fragment, useEffect, useRef, useState } from 'react'
+import { Button, Popover } from 'antd'
 import semver from 'semver/preload'
+import queryString from 'query-string'
 import { RELEASES_URL } from '../../utils'
 import { Select } from './'
 
@@ -197,14 +197,39 @@ const VersionSelector = ({ showDiff, showReleaseCandidates }) => {
         ? versionsInURL.toVersion
         : latestVersion
 
+      // Remove `rc` versions from the array of versions
+      const sanitizedVersions = getReleasedVersionsWithCandidates({
+        releasedVersions: allVersionsFromResponse,
+        toVersion: toVersionToBeSet,
+        latestVersion,
+        showReleaseCandidates
+      })
+
       setAllVersions(sanitizedVersions)
 
-      // const upgradeableVersions = getUpgradableVersions(
-      //   projectEngineVersion,
-      //   engineVersions
-      // )
-      // setLocalFromVersion(projectEngineVersion)
-      // setLocalToVersion(upgradeableVersions[0])
+      const fromVersionToBeSet = hasFromVersionInURL
+        ? versionsInURL.fromVersion
+        : // Get first major release before latest
+          getFirstMajorRelease({
+            releasedVersions: sanitizedVersions,
+            versionToCompare: toVersionToBeSet
+          })
+
+      setFromVersionList(
+        getReleasedVersions({
+          releasedVersions: sanitizedVersions,
+          maxVersion: toVersionToBeSet
+        })
+      )
+      setToVersionList(
+        getReleasedVersions({
+          releasedVersions: sanitizedVersions,
+          minVersion: fromVersionToBeSet
+        })
+      )
+
+      setLocalFromVersion(fromVersionToBeSet)
+      setLocalToVersion(toVersionToBeSet)
 
       setLoading(false)
 
@@ -225,9 +250,18 @@ const VersionSelector = ({ showDiff, showReleaseCandidates }) => {
       return
     }
 
-    // const engineVersions = getInstalledVersions();
-    // setFromVersionList(engineVersions)
-    // setToVersionList(engineVersions)
+    setFromVersionList(
+      getReleasedVersions({
+        releasedVersions: allVersions,
+        maxVersion: localToVersion
+      })
+    )
+    setToVersionList(
+      getReleasedVersions({
+        releasedVersions: allVersions,
+        minVersion: localFromVersion
+      })
+    )
   }, [
     isLoading,
     allVersions,
@@ -238,21 +272,22 @@ const VersionSelector = ({ showDiff, showReleaseCandidates }) => {
   ])
 
   const onShowDiff = ({ fromVersion, toVersion }) => {
-    // showDiff({
-    //   fromVersion,
-    //   toVersion
-    // })
-    // updateURLVersions({
-    //   fromVersion: localFromVersion,
-    //   toVersion: localToVersion
-    // })
+    showDiff({
+      fromVersion,
+      toVersion
+    })
+
+    updateURLVersions({
+      fromVersion: localFromVersion,
+      toVersion: localToVersion
+    })
   }
 
   return (
     <Fragment>
       <Selectors>
         <FromVersionSelector
-          title="What's your current You.i Engine One version?"
+          title="What's your current React Native version?"
           loading={isLoading}
           value={localFromVersion}
           options={fromVersionList}
@@ -264,16 +299,21 @@ const VersionSelector = ({ showDiff, showReleaseCandidates }) => {
           loading={isLoading}
           value={localToVersion}
           options={toVersionList}
+          popover={
+            localToVersion === '0.60.1' && (
+              <Popover
+                visible={true}
+                placement="topLeft"
+                content="We recommend using the latest 0.60 patch release instead of 0.60.1."
+              />
+            )
+          }
           onChange={chosenVersion => setLocalToVersion(chosenVersion)}
         />
       </Selectors>
 
       <ButtonContainer>
         <Button
-          style={{
-            backgroundImage: 'linear-gradient(to top right,#ec1c24,#d91c5c)',
-            border: 0
-          }}
           ref={upgradeButtonEl}
           type="primary"
           size="large"

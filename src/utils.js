@@ -3,8 +3,6 @@ import versions from './releases'
 
 const RN_DIFF_REPO = 'react-native-community/rn-diff-purge'
 
-;`https://raw.githubusercontent.com/react-native-community/rn-diff-purge/diffs/`
-
 export const RELEASES_URL = `https://raw.githubusercontent.com/${RN_DIFF_REPO}/master/RELEASES`
 
 export const getDiffPatchURL = ({ fromVersion, toVersion }) =>

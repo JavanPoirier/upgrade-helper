@@ -1,7 +1,8 @@
+import React, { Component, Fragment } from 'react'
 import styled from '@emotion/styled'
 import { Button } from 'antd'
-import React, { Component } from 'react'
-import { getVersionsInDiff } from '../../utils'
+import { getVersionsInDiff, getChangelogURL } from '../../utils'
+import { Link } from './Markdown'
 
 const Container = styled.div`
   position: relative;
@@ -99,7 +100,7 @@ class UsefulContentSection extends Component {
 
           <CloseButton toggleVisibility={this.handleToggleVisibility} />
 
-          {/* {versions.map(({ usefulContent, version }, key) => {
+          {versions.map(({ usefulContent, version }, key) => {
             const versionWithoutEndingZero = version.slice(0, 4)
 
             const links = [
@@ -129,7 +130,7 @@ class UsefulContentSection extends Component {
                 </List>
               </Fragment>
             )
-          })} */}
+          })}
         </InnerContainer>
       </Container>
     )
