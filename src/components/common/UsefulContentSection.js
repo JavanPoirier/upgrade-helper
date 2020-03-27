@@ -79,16 +79,18 @@ class UsefulContentSection extends Component {
     const { fromVersion, toVersion } = this.props
     const { isVisible } = this.state
 
-    const versions = getVersionsInDiff({ fromVersion, toVersion })
-    const doesAnyVersionHaveUsefulContent = versions.some(
-      ({ usefulContent }) => !!usefulContent
-    )
+    // const versions = getVersionsInDiff({ fromVersion, toVersion })
+    // const doesAnyVersionHaveUsefulContent = versions.some(
+    //   ({ usefulContent }) => !!usefulContent
+    // )
 
-    if (!doesAnyVersionHaveUsefulContent) {
+    // if (!doesAnyVersionHaveUsefulContent) {
+    if (!false) {
       return null
     }
 
-    const hasMoreThanOneRelease = versions.length > 1
+    //const hasMoreThanOneRelease = versions.length > 1
+    const hasMoreThanOneRelease = false
 
     return (
       <Container isVisible={isVisible}>

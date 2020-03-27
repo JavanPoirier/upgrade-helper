@@ -1,0 +1,1091 @@
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/build.rb b/Users/javanpoirier/youiengine/5.12.0/src/cloud/build.rb
+index 12a0999..5d9d2b7 100755
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/build.rb
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/build.rb
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env ruby
+-# © You i Labs Inc. 2000-2019. All rights reserved.
++# © You i Labs Inc. 2000-2020. All rights reserved.
+ 
+ require 'fileutils'
+ require 'optparse'
+@@ -90,10 +90,6 @@ class RokuClientBuilder
+                 #Only used in -h to describe client side build option to supplied youiEngine path
+             end
+ 
+-            opts.on("-p", "--profiler", "Turn on export profiler") do
+-                options.constants << "EXPORT_PROFILER=true"
+-            end
+-
+             opts.on("-g", "--scenegraph") do
+               options.constants << "ENABLE_RALE=true"
+               options.optionalComponents << "TrackerTask.xml"
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/LoadingLibrary.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/LoadingLibrary.brs
+index 65342e9..5c2e0bd 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/LoadingLibrary.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/LoadingLibrary.brs
+@@ -1,20 +1,9 @@
+ function init() as void
+     m.top.observeField("loadStatus", "onLoadStatusChanged")
+-    #if EXPORT_PROFILER
+-    m.profilerTimer = CreateObject("roDateTime")
+-    #end if
+ 
+     ' m.timespan = CreateObject("roTimespan")
+ end function
+ 
+-#if EXPORT_PROFILER
+-function getCurrentTime()
+-      m.profilerTimer.Mark()
+-      milliSeconds = m.profilerTimer.GetMilliseconds()
+-      return m.profilerTimer.AsSeconds() * 1000 + milliSeconds
+-end function
+-#end if
+-
+ ' When the load status is ready the downloaded component (either a full scene or else a subtree)
+ '  can be instantiated. This function instantiates the tree and inserts it into the client scene
+ '  at the specified location.
+@@ -26,9 +15,6 @@ function onLoadStatusChanged() as void
+   }
+ 
+   if transferStatus.loadStatus = "ready"
+-    #if EXPORT_PROFILER
+-    startLoadTime = getCurrentTime()
+-    #end if
+     ' Create a new node for the component received from the server
+     print "ComponentLibrary loaded... adding " + transferStatus.config.componentName + " node"
+ 
+@@ -51,12 +37,6 @@ function onLoadStatusChanged() as void
+       ' print "Main component CreateObject time: " m.timespan.TotalMilliseconds()
+     end if
+     
+-    #if EXPORT_PROFILER
+-    loadingDuration = getCurrentTime() - startLoadTime
+-    m.global.loadingDuration = loadingDuration
+-    print "----------- Loading time: " + str(loadingDuration)
+-    #end if
+-
+     m.global.transferStatus = transferStatus
+   else if m.top.loadStatus = "failed"
+     transferStatus.error = "failed_download"
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/PlayerEventMain.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/PlayerEventMain.brs
+index 277cb88..0d8d9f0 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/PlayerEventMain.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/PlayerEventMain.brs
+@@ -1,6 +1,7 @@
+ REM Player utilities
+ 
+-sub handlePlayerEvents(video as Object)
++sub handlePlayerEvents(video as Object, args as Object)
++
+   keepPlaying = true
+   m.port = CreateObject("roMessagePort")
+ 
+@@ -8,8 +9,12 @@ sub handlePlayerEvents(video as Object)
+   video.observeField("state", m.port)
+   video.visible = true
+   video.control = "play"
+-  video.setFocus(true) 'so we can handle a Back key interruption
+-  
++
++  ' Should we auto focus the video player
++  if args = invalid or args.shouldAutoFocus = invalid or args.shouldAutoFocus = "true"
++    video.setFocus(true) 'so we can handle a Back key interruption
++  end if
++
+   convivaContentInfoParam = m.top.convivaContentInfoParam
+   
+   ' livePass can be used for app to access the conviva API
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/PlayerTask.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/PlayerTask.brs
+index eda4c96..aa642fe 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/PlayerTask.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/PlayerTask.brs
+@@ -7,7 +7,7 @@ sub playContent()
+ 
+     video = m.top.video
+ 
+-    handlePlayerEvents(video)
++    handlePlayerEvents(video, m.top.args)
+ 
+     print "PlayerTask: exiting playContent()"
+ end sub
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/SceneInterface.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/SceneInterface.brs
+index 362e4f1..2f83e32 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/SceneInterface.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/SceneInterface.brs
+@@ -64,7 +64,7 @@ end sub
+ sub hierarchicallyUpdateNodeProperties(params as Object)
+   if params.data.reconstructData <> invalid
+     logMessage("Reconstructing node id: " + params.node.id)
+-    newNode = CreateNodeFromJSON(params.data.reconstructData, "")
++    newNode = createSubtreeFromJSON(params.data.reconstructData)
+     reconstructNode(newNode, params.node.id)
+     if params.data.reconstructIncludeChildren then return
+   end if
+@@ -298,7 +298,7 @@ end function
+ sub loadJSON(arguments as Object)
+   markTimer("loadJSON")
+   errorStr = ""
+-  content = CreateNodeFromJSON(arguments.jsonSubtree, "")
++  content = createSubtreeFromJSON(arguments.jsonSubtree)
+   
+   if content <> invalid
+     errorStr = loadContent(content, arguments.parentNodeName, arguments.changeNodeName, arguments.operationName)
+@@ -308,7 +308,7 @@ sub loadJSON(arguments as Object)
+     errorStr = "Unable to create node from json."
+   end if
+   if errorStr <> ""
+-    sendResponse(false, {loadstatus: errorStr})
++    sendResponse(false, {loadstatus: errorStr}, arguments.lastSequence)
+   end if
+ 
+   markTimer("loadJSON")
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/SceneInterface.xml b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/SceneInterface.xml
+index aea0785..8284650 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/SceneInterface.xml
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/SceneInterface.xml
+@@ -25,6 +25,7 @@
+   <function name="clearContent"/>
+   </interface>
+ 
++  <script type="text/brightscript" uri="pkg:/source/network.brs"/>
+   <script type="text/brightscript" uri="pkg:/source/utils.brs"/>
+ 
+   <script type="text/brightscript" uri="pkg:/components/SceneInterfaceFocus.brs"/>
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/SubtreeLoadUtils.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/SubtreeLoadUtils.brs
+index d77f0e0..8e4b853 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/SubtreeLoadUtils.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/SubtreeLoadUtils.brs
+@@ -7,9 +7,14 @@ function loadContent(content as Object, parentNodeName as String, changeNodeName
+   m.errorStr = ""
+   if parentNodeName <> ""
+     parentNode = m.top.mainScene.findNode(parentNodeName)
+-    if parentNode = invalid
+-        m.errorStr = "onLoadStatusChanged Failed to find parent node: " + parentNodeName
+-    else
++    ' if parent not found by name try to find parent from node to be replaced
++    if parentNode = invalid and operationName = "replace"
++        changedNode = m.top.mainScene.findNode(changeNodeName)
++        if changedNode <> invalid
++          parentNode = changedNode.getParent()
++        end if
++    end if
++    if parentNode <> invalid
+       if operationName = "replace"
+         ' 1 - Replace a subtree
+         print "Replacing child of: " + parentNodeName + " child: " + changeNodeName
+@@ -19,6 +24,8 @@ function loadContent(content as Object, parentNodeName as String, changeNodeName
+         print "Inserting child onto: " + parentNodeName
+         insertSubtree(content, parentNode, changeNodeName)
+       end if
++    else
++      m.errorStr = "onLoadStatusChanged Failed to find parent node: " + parentNodeName
+     end if
+   else
+     ' 3 - Insert a fullscreen export - the main scene will have already been cleared,but
+@@ -160,13 +167,12 @@ function getIndexOfChildNode(parent as Object, childNode as Object)
+   return index
+ end function
+ 
+-function CreateNodeFromJSON(jsonNode as Object, namespace as String) as Object
+-  sceneNode = CreateObject("roSGNode", namespace + jsonNode.componentName)
++function createNodeFromJson(jsonNode as Object) as Object
++  sceneNode = CreateObject("roSGNode", jsonNode.componentName)
+   if sceneNode = invalid
+-    print "######### UNABLE TO CREATE NODE: " namespace + jsonNode.componentName "###########"
++    print "######### UNABLE TO CREATE NODE: " jsonNode.componentName "###########"
+     return invalid
+   end if
+-
+   ' Would have tried to use addFields here, but the order of initialization matters
+   attributes = jsonNode.attributes
+   if attributes <> invalid
+@@ -175,26 +181,31 @@ function CreateNodeFromJSON(jsonNode as Object, namespace as String) as Object
+       sceneNode[attributes[i]] = attributes[i+1]
+     end for
+   end if
++  return sceneNode
++end function
+ 
+-  children = jsonNode.children
+-  if children = invalid then return sceneNode
+-
+-  hasNamespaceField = sceneNode.hasField("namespace")
+-
+-  for each childJsonNode in children
+-    role = childJsonNode.role
+-    if role <> invalid and hasNamespaceField
+-      namespace = sceneNode.namespace
+-    end if
++function createSubtreeFromJSON(jsonNode as Object) as Object
++  sceneNodesToComplete = CreateObject("roArray", 20, true)
++  topSceneNode = createNodeFromJson(jsonNode)
++  sceneNodesToComplete.push({node: topSceneNode, json: jsonNode})
+ 
+-    childSceneNode = CreateNodeFromJSON(childJsonNode, namespace)
++  while sceneNodesToComplete.Count() > 0
++    nextToDo = sceneNodesToComplete.pop()
++    sceneNode = nextToDo.node
++    sceneJson = nextToDo.json
++    for each childJsonNode in sceneJson.children
++      childSceneNode = createNodeFromJson(childJsonNode)
+ 
+-    if role <> invalid
+-      sceneNode[role] = childSceneNode
+-    else
+-      sceneNode.appendChild(childSceneNode)
+-    end if
+-  end for
++      if childJsonNode.role <> invalid
++        sceneNode[childJsonNode.role] = childSceneNode
++      else
++        sceneNode.appendChild(childSceneNode)
++      end if
++      if childJsonNode.children <> invalid
++        sceneNodesToComplete.push({node: childSceneNode, json: childJsonNode})
++      end if
++    end for
++  end while
+ 
+-  return sceneNode
++  return topSceneNode
+ end function
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/VideoPlayer.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/VideoPlayer.brs
+index 21b0ae3..df7aa29 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/VideoPlayer.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/VideoPlayer.brs
+@@ -2,6 +2,7 @@
+ function init()
+   m.top.observeField("videoPlayerColor", "onVideoPlayerColorChanged")
+   m.top.observeField("focusedChild", "onFocusChange")
++  m.top.id = "_videoPlayer"
+ 
+   m.keyPressDown = false
+   m.backOnPlayStop = false
+@@ -9,6 +10,9 @@ function init()
+   m.lastNotifiedPosition = 0
+   m.analyticsEventQueue = createObject("roList")
+ 
++  ' Setup our default metadata properties
++  updateMetadata({})
++
+   video = createObject("roSGNode", "Video")       
+   if video <> invalid
+     m.top.appendChild(video)
+@@ -28,7 +32,6 @@ function init()
+     video.observeField("mute", "onMuteChanged")
+     video.observeField("timedMetaData", "onTimedMetaDataChanged")
+     m.top.videoNode = video
+-    video.setFocus(true)
+     m.top.observeField("control", "onControlChange")
+     m.playTimer = createObject("roTimespan")
+     video.id = "RokuVideoId"
+@@ -44,7 +47,7 @@ end function
+ function onDrawerStateChange(event as Object)
+     state = event.GetData()
+     if state = "hide"
+-        m.top.videoNode.setFocus(true)
++        attemptSetFocus()
+     end if
+ end function
+ 
+@@ -78,7 +81,6 @@ function onControlChange(event as Object)
+         m.PlayerTask.video = m.top.videoNode
+         m.PlayerTask.args = m.top.args
+         m.PlayerTask.control = "RUN"
+-
+         m.playTimer.Mark() 'start playback marker
+         videoDrawer = findObjectNamed(m.top.videoDrawerID)
+         if videoDrawer <> invalid
+@@ -123,7 +125,6 @@ end sub
+ 
+ sub exitPlayer()
+   print "Player: exitPlayer()"
+-
+   if m.top.playerTask = invalid then return
+     
+   eventObject = CreateObject("roAssociativeArray")
+@@ -169,31 +170,25 @@ end sub
+ 
+ function onKeyEvent(key as String, press as Boolean) as Boolean
+     result = false
+-
+     if key = "back"
+-        if press = false and m.keyPressDown
+-          if m.top.videoNode.state <> "stopped"
+-            requestStop(true)
+-          else
+-            exitPlayer()
+-          end if
+-        end if
+-        result = true
++      if press = false and m.keyPressDown
++        result = handleBackEvent()
++      end if
+     else
+-        videoDrawer = findObjectNamed(m.top.videoDrawerID)
+-        if videoDrawer <> invalid
+-          if key = "down" and not press
+-            if videoDrawer.state = "hide" or videoDrawer.state = "peek"
+-              videoDrawer.state = "show"
+-              return true
+-            end if
+-          else if key = "OK" and not press
+-            if videoDrawer.state = "hide"
+-              videoDrawer.state = "peek"
+-              return true
+-            end if
++      videoDrawer = findObjectNamed(m.top.videoDrawerID)
++      if videoDrawer <> invalid
++        if key = "down" and not press
++          if videoDrawer.state = "hide" or videoDrawer.state = "peek"
++            videoDrawer.state = "show"
++            return true
++          end if
++        else if key = "OK" and not press
++          if videoDrawer.state = "hide"
++            videoDrawer.state = "peek"
++            return true
+           end if
+         end if
++      end if
+     end if
+ 
+     m.keyPressDown = press
+@@ -360,7 +355,7 @@ end function
+ 
+ sub setAudioTrack(track as String)
+   m.top.videoNode.audioTrack = track
+-  m.top.videoNode.setFocus(true)
++  attemptSetFocus()
+ end sub
+ 
+ function onAvailableCCTracksChanged()
+@@ -384,7 +379,7 @@ function setCCTrack(track as String)
+     m.top.videoNode.globalCaptionMode = "On"
+   end if
+   m.top.videoNode.subtitleTrack = track
+-  m.top.videoNode.setFocus(true)
++  attemptSetFocus()
+ end function
+ 
+ sub setMute(mute as Boolean)
+@@ -458,3 +453,52 @@ function popAnalyticsEvent() as Object
+   event = m.analyticsEventQueue.removeHead()
+   return event
+ end function
++
++sub attemptSetFocus()
++  if m.top.args.shouldAutoFocus = "true"
++    m.top.videoNode.setFocus(true) 'so we can handle a Back key interruption
++  end if
++end sub
++
++sub forceSetFocus()
++  m.top.videoNode.setFocus(true)
++end sub
++
++function handleBackEvent() as Boolean
++  result = false
++  if m.top.playerTask = invalid then return result
++
++  if m.top.args.handleBackKeyEvent = "true"
++    if m.top.videoNode.state <> "stopped"
++      requestStop(true)
++    else
++      exitPlayer()
++    end if
++    result = true
++  end if 
++  return result
++end function
++
++sub updateMetadata(args as Object)
++  m.top.args = patchFunctionalMetadataProperties(args)
++end sub
++
++function patchFunctionalMetadataProperties(args as Object) as Object 
++  ' Ensure defaults OR migrate previous values for functional metadata properties
++  args.exitOnVideoComplete = validateMetadataValue("exitOnVideoComplete", args)
++  args.shouldAutoFocus = validateMetadataValue("shouldAutoFocus", args)
++  args.handleBackKeyEvent = validateMetadataValue("handleBackKeyEvent", args)
++
++  return args
++end function
++
++function validateMetadataValue(key as String, args as Object) as String
++  if args[key] = invalid
++    if m.top.args <> invalid and m.top.args[key] <> invalid
++      return m.top.args[key]
++    else
++      return "true"
++    end if
++  end if
++  return args[key]
++end function
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/VideoPlayer.xml b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/VideoPlayer.xml
+index 8afdbd0..4fce339 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/components/VideoPlayer.xml
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/components/VideoPlayer.xml
+@@ -8,9 +8,17 @@
+         <field id = "videoNode"  type = "node" />
+         <field id = "playerTask" type = "node"/>
+         <field id = "control"    type = "string"/>
++        <!-- metadata - functional keys
++            exitOnVideoComplete - Should the VideoPlayer exit the video when it's completed OR is stopped.
++                - default: "true"
++            shouldAutoFocus - Should the VideoPlayer automatically assume focus when created.
++                - default: "true"
++            handleBackKeyEvent - Should the VideoPlayer handle back events
++                - default: "true"
++        -->
+         <field id = "args"       type = "assocarray"/>
+         <field id = "notificationInterval" type = "int" value = "5" />
+-
++        
+         <function name = "requestStop"/>
+         <function name = "stopTask"/>
+         <function name = "setAudioTrack"/>
+@@ -19,6 +27,11 @@
+ 
+         <function name="enqueueAnalyticsEvent"/>
+         <function name="popAnalyticsEvent"/>
++        <function name="attemptSetFocus"/>
++        <function name="forceSetFocus"/>
++        <function name="handleBackEvent"/>
++        <function name="updateMetadata"/>
++        <function name="patchFunctionalMetadataProperties"/>
+ 
+     </interface>
+     <script type="text/brightscript" uri="pkg:/components/VideoPlayer.brs"/>
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/optional/AuditudePlayerTask.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/optional/AuditudePlayerTask.brs
+index 202a2ef..557b644 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/optional/AuditudePlayerTask.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/optional/AuditudePlayerTask.brs
+@@ -13,7 +13,7 @@ sub playContent()
+     if m.ads.callFunc("initiatesPlayback")
+         m.ads.callFunc("playVideo", video, m.top.args, m.top.convivaContentInfoParam)
+     else
+-        handlePlayerEvents(video)
++        handlePlayerEvents(video, m.top.args)
+     end if
+ 
+     print "PlayerTask: exiting playContent()"
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/optional/TrackerTask.xml b/Users/javanpoirier/youiengine/5.12.0/src/cloud/optional/TrackerTask.xml
+index b797640..f5584c1 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/optional/TrackerTask.xml
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/optional/TrackerTask.xml
+@@ -43,6 +43,11 @@
+       <function name="UIThread_log"/>
+       <function name="UIThread_setLogVerbosity"/>
+       <function name="UIThread_setLogFormat"/>
++
++      <function name="UIThread_setRulerLine"/>
++      <function name="UIThread_setRulerLines"/>
++      <function name="UIThread_removeRulerLine"/>
++      <function name="UIThread_removeAllRulerLines"/>
+   </interface>
+ 
+     
+@@ -52,6 +57,7 @@
+     
+     
+     
++    
+ 
+  
+ <script type = "text/brightscript" >
+@@ -253,8 +259,8 @@ end function
+ 
+ ' RALE_Logger__getZeroNumber - Convert number to format "0[number]" if it has less then 2 digits
+ ' @param {number} n - number for converting
+-' @param {number} to_length -  the nessesary count of digits
+-' @return {string} - converted numer format
++' @param {number} to_length -  the necessary count of digits
++' @return {string} - converted number format
+ function RALE_Logger__getZeroNumber(n, to_length=2)
+     n = str(n).trim()
+     if len(n) < to_length
+@@ -264,6 +270,80 @@ function RALE_Logger__getZeroNumber(n, to_length=2)
+ end function
+ 
+ 
++' CreateRedLines - Selector (live) view class constructor
++' @return {object} - selector (live) view
++Function CreateRedLines() as Object
++    this = {}
++    node = CreateObject("roSGNode", "Group")
++    node.addFields({"isExternallyExposed": true})
++    this.node = node
++    this.childMap = {}
++
++    this.setLine = RedLines_SetLine
++    this.setRulerLines = RedLines_SetRulerLines
++    this.removeLine = RedLines_RemoveLine
++    this.removeAllLines = RedLines_RemoveAllLines
++
++    this.resolution = m.top.getScene().getField("currentDesignResolution")
++
++    return this
++End Function
++
++Sub RedLines_SetLine(id, position, coords)
++    if (m.childMap[id] = invalid) then
++        RedLines_AddLine(id, position, coords, m.node, m.childMap)
++    else
++        RedLines_UpdatePosition(id, coords, m.childMap)
++    end if
++end Sub
++
++Sub RedLines_SetRulerLines(rulerLines)
++    For Each line In rulerLines.Items()
++        RedLines_AddLine(line.key, line.value.position, line.value.coords, m.node, m.childMap)
++    End For
++end Sub
++
++Sub RedLines_AddLine(id, position, coords, node, childMap) as Object
++    line = CreateObject("roSGNode", "Rectangle")
++    line.setField("id", id)
++    line.setField("color", "#00F8FF")
++    line.addFields({"position": position})
++    RedLines_SetLineCoords(line, coords)
++    node.appendChild(line)
++    childMap[id] = line
++end Sub
++
++Sub RedLines_UpdatePosition(id, coords, childMap) as Object
++    line = childMap[id]
++    RedLines_SetLineCoords(line, coords)
++end Sub
++
++Sub RedLines_SetLineCoords(node, coords) as Integer
++    if node.position = "horizontal" then
++            node.setField("translation", [coords.x,0])
++            node.setField("width", 1)
++            node.setField("height", m.resolution.height)
++        end if
++        if node.position = "vertical" then
++            node.setField("translation", [0,coords.y])
++            node.setField("width", m.resolution.width)
++            node.setField("height", 1)
++        end if
++end Sub
++
++Sub RedLines_RemoveLine(id)
++    line = m.childMap[id]
++    m.node.removeChild(line)
++    m.childMap[id] = invalid
++end Sub
++
++Sub RedLines_RemoveAllLines()
++    childrenList = m.node.getChildren(-1,0)
++    m.node.removeChildren(childrenList)
++    m.childMap = {}
++end Sub
++
++
+ ' CreateSelectorView - Selector (live) view class constructor
+ ' @return {object} - selector (live) view
+ Function CreateSelectorView() as Object
+@@ -548,7 +628,12 @@ Sub SelectorView_UpdateViewPosition(event)
+     timer = event.getRoSGNode()
+     node = timer.getparent()
+ 
++    ' - - - - - - You.i code - - - - - -
++    ' This check has been added since a crash would occur whenever the tracking task was added to
++    ' You.i Cloud Roku project. This check needs to be reviewed as it has been present for a while
++    ' and may no longer be required...
+     if node = Invalid then return
++    ' - - - - - - You.i code - - - - - -
+ 
+     if node.attachedView <> Invalid then
+         boundingRect = node.attachedView.sceneboundingRect()
+@@ -612,6 +697,12 @@ Sub getCommandMap() as Object
+         "setLogVerbosity" : "UIThread_setLogVerbosity",
+         "setLogFormat"    : "UIThread_setLogFormat",
+         "log"             : "UIThread_log"
++
++        ' Ruler lines commands
++        "setRulerLine"             : "UIThread_setRulerLine",
++        "setRulerLines"            : "UIThread_setRulerLines",
++        "removeRulerLine"          : "UIThread_removeRulerLine",
++        "removeAllRulerLines"      : "UIThread_removeAllRulerLines",
+     }
+ End Sub
+ 
+@@ -625,7 +716,7 @@ End Sub
+ 
+ ' UIThread_init - RALE "init" command
+ ' @param {object} args - command arguments
+-' @return {object} - response of command. Contains RALE version
++' @return {object} - response of command. Contains RALE version and session id
+ Sub UIThread_init(args) as Object
+     root = m.top.GetScene()
+ 
+@@ -640,6 +731,13 @@ Sub UIThread_init(args) as Object
+         root.appendChild(m.selectorView)
+     end if
+ 
++    if m.redLines = Invalid then
++        m.redLines = CreateRedLines()
++        root.appendChild(m.redLines.node)
++    else
++        UIThread_removeAllRulerLines({})
++    end if
++
+     if args.logVerbosity >= 0 then
+         UIThread_setLogVerbosity({ level: args.logVerbosity })
+     end if
+@@ -649,7 +747,7 @@ Sub UIThread_init(args) as Object
+     end if
+ 
+     m.logger.info("RALE Initialized")
+-    return { raleVersion: m.raleVersion }
++    return { raleVersion: m.raleVersion, sessionid: m.sessionId }
+ End Sub
+ 
+ '=======================
+@@ -836,6 +934,7 @@ Sub UIThread_addChild(args) as Object
+     result = addChild(node, childType, index)
+     if result.success = true then
+         index = RALE_getNodeIndexByPath(path)
++        setNodeField(result.child, "rale_new_child", true, "boolean")
+         return {
+             tree: getNodeTree(result.child, index, 50),
+             childindex: result.index
+@@ -1043,6 +1142,35 @@ Sub UIThread_setBoundingRect(args) as Object
+     return node.sceneBoundingRect()
+ End Sub
+ 
++'=======================
++' Layout ruler commands
++'=======================
++' UIThread_setRulerLine - TBD
++Sub UIThread_setRulerLine(args) as Object
++    m.redLines.setLine(FW_AsString(args.id), args.position, args.coords)
++    return { success: true }
++End Sub
++
++' UIThread_setRulerLines - TBD
++Sub UIThread_setRulerLines(args) as Object
++    if args.rulerLines.Count() >= 0 then
++        m.redLines.setRulerLines(args.rulerLines)
++    end if
++    return { success: true }
++End Sub
++
++' UIThread_removeRulerLine - TBD
++Sub UIThread_removeRulerLine(args) as Object
++    m.redLines.removeLine(FW_AsString(args.id))
++    return { success: true }
++End Sub
++
++' UIThread_removeRulerLine - TBD
++Sub UIThread_removeAllRulerLines(args) as Object
++    m.redLines.removeAllLines()
++    return { success: true }
++End Sub
++
+ '=======================
+ ' Registry commands
+ '=======================
+@@ -1707,7 +1835,8 @@ Sub init()
+     m.config = RALE_Config()
+     m.logger = RALE_Logger(m.config.defaultLogLevel, m.config.logFormat)
+     m.sceneBG = m.top.GetScene().getChild(0)
+-    m.raleVersion = "2.0.9"
++    m.raleVersion = "2.1.7"
++    m.sessionId = CreateObject("roDeviceInfo").GetRandomUUID()
+ 
+     m.logger.info("Roku Advanced Layout Editor v." + m.raleVersion)
+ End Sub
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/clientServerEvents.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/clientServerEvents.brs
+index 56a819d..fdb130c 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/clientServerEvents.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/clientServerEvents.brs
+@@ -75,6 +75,9 @@ function createStartEvent() as Object
+     commandObject.friendlyName = di.GetFriendlyName()
+     commandObject.manufacturer = di.GetModelDetails().VendorName
+     commandObject.modelNumber  = di.GetModelDetails().ModelNumber
++    commandObject.locale = di.GetCurrentLocale()
++    commandObject.clockFormat = di.GetClockFormat()
++    commandObject.timeZone = di.GetTimeZone()
+     commandObject.header = createCommandHeader()
+ 
+     connectionInfo = di.GetConnectionInfo()
+@@ -147,16 +150,6 @@ function createVisitorIDEvent(visitorID as String) as Object
+     return commandObject
+ end function
+ 
+-function createExportStatusEvent(result as String, exportSyncId as Integer, duration as Integer, componentName as String) as Object
+-    eventObject = CreateObject("roAssociativeArray")
+-    eventObject.event = "exportStatus"
+-    eventObject.result = result
+-    eventObject.exportSyncId = exportSyncId
+-    eventObject.componentName = componentName
+-    eventObject.duration = duration
+-    return eventObject
+-end function
+-
+ function CreateShowSelectionEvent(epgSelected as Object) as Object
+     eventObject = CreateObject("roAssociativeArray")
+     eventObject.event = "epgShowSelected"
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/commandsSceneLoad.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/commandsSceneLoad.brs
+index 687af2e..c701c74 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/commandsSceneLoad.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/commandsSceneLoad.brs
+@@ -10,6 +10,7 @@ sub loadJSONCommand(arguments as Object)
+     end if
+     invalidateLocalFocus(playFocusOutAnimation)
+ 
++    arguments["lastSequence"] = m.lastSequence
+     m.sceneInterface.callFunc("loadJSON", arguments)
+ 
+     hideWaitSpinner()
+@@ -17,15 +18,10 @@ end sub
+ 
+ sub loadComponentCommand(arguments as Object)
+   logMessage("LoadComponent: " + arguments.componentName)
+-  #if EXPORT_PROFILER
+-  SendObjectAsJSON(createExportStatusEvent("loading", m.exportSyncId, 0, arguments.componentName))
+-  #end if
+ 
+   libName = arguments.componentName
+   if m.previousComponentArguments = invalid
+     retryCount = 3
+-    ' Wait longer for a successful download of core components
+-    if libName = "CoreYoui" then retryCount = 10
+     ' Initialize the retry counter for loading the component
+     m.componentLoadRetriesRemaining = retryCount
+   end if
+@@ -78,28 +74,6 @@ sub loadComponentCommand(arguments as Object)
+   logMessage("Load status: " + newLib.loadStatus + " " + newLib.uri)
+ end sub
+ 
+-sub deleteLoadingLibrariesCommand(arguments as Object)
+-  if arguments.librariesToDelete.Peek() = "all"
+-    ? "______________ Deleting all libraries"
+-    coreComponentsLib = m.Libraries.Lookup("CoreYoui")
+-    m.libraries.Clear()
+-    m.libraries.AddReplace("CoreYoui", coreComponentsLib)
+-  else
+-    for each library in arguments.librariesToDelete
+-      if m.libraries.DoesExist(library)
+-        ? "______________ Deleting loading library for " + library
+-        m.libraries.Delete(library)
+-      end if
+-    end for
+-    ' Debugging purpose
+-    ' for each library in m.libraries
+-    '   ? "______________ +++" + library
+-    ' end for
+-  end if
+-
+-  logMessage("deleteLoadingLibrariesCommand() complete")
+-end sub
+-
+ sub deleteSubtreeCommand(command as Object)
+   logMessage("deleteSubtreeCommand: " + command.nodeName)
+   invalidateLocalFocus(false)
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/commandsSpinner.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/commandsSpinner.brs
+index 21c5b39..80b1df1 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/commandsSpinner.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/commandsSpinner.brs
+@@ -39,9 +39,9 @@ end sub
+ sub hideWaitSpinner()
+     logMessage("hideWaitSpinner")
+ 
+-    m.global.waitSpinner = false
+     if m.delayedSpinnerTask <> invalid then m.delayedSpinnerTask.control = "stop"
+-
++    m.global.waitSpinner = false
++ 
+     spinnerGroup = m.scene.findNode("SPINNER")
+     if spinnerGroup = invalid then return
+ 
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/commandsVideo.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/commandsVideo.brs
+index d0b0c69..594180f 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/commandsVideo.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/commandsVideo.brs
+@@ -6,9 +6,16 @@ sub playVideoCommand(arguments as Object)
+ 
+   logMessage("Playing video: " + arguments.Url)
+ 
++  nodeName = invalid
++  if arguments.nodeName <> invalid 
++    nodeName = arguments.nodeName 
++  else
++    nodeName = m.nodeName
++  end if
+   m.global.unobserveField("videoSurfaceId")
+-  nodeName = arguments.nodeName
++
+   player = m.player
++  videoSurface = invalid
+   if nodeName <> invalid then videoSurface = m.scene.findNode(nodeName)
+ 
+   if videoSurface <> invalid
+@@ -19,16 +26,13 @@ sub playVideoCommand(arguments as Object)
+     else
+       if isVideoPlaying()
+         player.callFunc("stopTask", {})
+-        videoSurface.removeChild(player)
+       end if
+-      ' Clear previous videoplayer if present
+-      for i=videoSurface.getChildCount() - 1 to 0 step -1
+-        videoSurface.removeChildIndex(i)
+-      end for
++
+       player = CreateObject("roSGNode", "VideoPlayer")
+       attachPlayerToSurface(player, videoSurface)
+       m.player = player
+     end if
++    m.nodeName = nodeName
+   else
+     player = CreateObject("roSGNode", "VideoPlayer")
+     m.player = player
+@@ -36,6 +40,7 @@ sub playVideoCommand(arguments as Object)
+     print "Created VideoPlayer"
+   end if
+ 
++  player.callFunc("updateMetadata", arguments)
+   video = player.videoNode
+ 
+   if video <> invalid
+@@ -74,9 +79,10 @@ sub playVideoCommand(arguments as Object)
+     analyticsData.length = videoContent.Length
+     m.analytics.setVideoData(analyticsData)
+ 
+-    video.setFocus(true)
++    ' Attempt to set the focus on the player. This will handle the case where automatic
++    ' focus is disabled
++    player.callFunc("attemptSetFocus")
+ 
+-    player.args = arguments
+     ' Set the player task name on the player so that it can create the appropriate player task (thread). The task name is retrieved from the ads interface.
+     ' The default player task handles player events while the Auditude player task will handle ad events as well.
+     playerTaskName = m.ads.callFunc("getPlayerTaskName")
+@@ -115,6 +121,15 @@ sub pauseVideoCommand(arguments as Object)
+   end if
+ end sub
+ 
++sub videoMetadataCommand(arguments as Object)
++  if m.player <> invalid
++    logMessage("video metadata command")
++    m.player.callFunc("updateMetadata", arguments)
++  else
++    logMessage("video metadata command - no player found")
++  end if
++end sub
++
+ sub seekVideoCommand(arguments as Object)
+   if m.player <> invalid
+     logMessage("seek video command")
+@@ -175,7 +190,7 @@ function onVideoSurfaceIdUpdated() as boolean
+     if videoSurface <> invalid
+       ? "attaching player to surface"
+       attachPlayerToSurface(m.player, videoSurface)
+-      m.player.videoNode.setFocus(true)
++      m.player.callFunc("attemptSetFocus")
+       m.player.control = "play"
+     end if
+   end if
+@@ -183,8 +198,10 @@ function onVideoSurfaceIdUpdated() as boolean
+ end function
+ 
+ sub attachPlayerToSurface(player as Object, videoSurface as Object)
++  recursive_destroy(videoSurface)
++
+   player.videoPlayerColor = videoSurface.videoPlayerColor
+   player.videoDrawerID = videoSurface.videoDrawerID
+-  recursive_destroy(videoSurface)
+   videoSurface.appendChild(player)
++  videoSurface.videoPlayerID = player.id
+ end sub
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/main.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/main.brs
+index 5208d99..18757b6 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/main.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/main.brs
+@@ -2,9 +2,6 @@
+ '********** Copyright 2016 Youi.TV.  All Rights Reserved. **********
+ function main(args as Dynamic) as Void
+     initialize()
+-
+-    showSceneGraphScreen()
+-    showDelayedWaitSpinner(0)
+     processLaunchArguments(args)
+ 
+ #if ENABLE_IAP_START_UP
+@@ -29,8 +26,8 @@ sub initialize()
+     m.appLaunchCompleted = false
+     m.eventLoopStarted = false
+     m.logForwardingEnabled = false
+-    m.exportSyncId = 0
+     m.delayedSpinnerTask = invalid
++    m.lastSequence = 0
+ 
+     initConnectionMonitor()
+ 
+@@ -56,6 +53,9 @@ sub initialize()
+         DisplayFatalError("We weren't able to load the configuration information and can't continue")
+     end if
+ 
++    showSceneGraphScreen()
++    showDelayedWaitSpinner(0)
++
+     'Setup video metadata validator
+     m.videoMetadataValidator = CreateObject("RoSGNode", "VideoMetadataValidator")
+ 
+@@ -99,7 +99,6 @@ sub initialize()
+     m.clientStatus = {}
+ 
+     start()
+-
+ end sub
+ 
+ sub start(isReconnecting = false as Boolean)
+@@ -198,10 +197,6 @@ sub showSceneGraphScreen()
+     ' m.tcpReceiveTimer = createObject("roTimespan")
+     ' m.commandParseTimespan = createObject("roTimespan")
+ 
+-    #if EXPORT_PROFILER
+-    m.global.addFields({loadingDuration : 0})
+-    #end if
+-
+     initializeLocalFocus()
+ end sub
+ 
+@@ -454,7 +449,7 @@ end function
+ 
+ function initCommands()
+     commands = {
+-      "loadComponent" : loadComponentCommand,
++      "loadCoreComponent" : loadCoreComponentCommand,
+       "loadJSON" : loadJSONCommand,
+       "clearScreen" : clearScreenCommand,
+       "playAnimation" : playAnimationCommand,
+@@ -464,6 +459,7 @@ function initCommands()
+       "addAndStartAnimInList" : addAndStartAnimationInListCommand,
+       "playVideo" : playVideoCommand,
+       "pauseVideo" : pauseVideoCommand,
++      "videoMetadata": videoMetadataCommand,
+       "stopVideo" : stopVideoCommand,
+       "seekVideo" : seekVideoCommand,
+       "setAudioTrack" : setAudioTrackCommand,
+@@ -504,9 +500,7 @@ function initCommands()
+       "deleteSubtree" : deleteSubtreeCommand,
+       "launchChannel" : launchChannelCommand,
+       "sessionTimeout" : sessionTimeoutCommand,
+-      "deleteLoadingLibraries" : deleteLoadingLibrariesCommand,
+       "resendCommand" : resendLastCommand,
+-      "setExportSyncId" : setExportSyncId,
+       "saveAppContext" : saveAppContextCommand,
+       "setConfig" : setConfigCommand,
+       "ping" : pingCommand,
+@@ -581,9 +575,11 @@ sub initServerLogging()
+     end if
+ end sub
+ 
+-sub setExportSyncId(arguments as Object)
+-  if arguments.exportSyncId
+-    m.exportSyncId = arguments.exportSyncId
+-    logMessage("setExportSyncId: " + m.exportSyncId.toStr())
+-  end if
+-end sub
++function loadCoreComponentCommand(args) as boolean
++  coreComponentUri = args.coreComponentUri
++
++  arguments = { componentName: "CoreYoui", componentUri: coreComponentUri, insertionIndex: 0, parentNodeName: "", replaceNodeName: "CoreYoui"}
++  logMessage("CoreComponentsLib uri: " + coreComponentUri)
++  loadComponentCommand(arguments)
++  return true
++end function
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/network.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/network.brs
+index dd9d895..e572a55 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/network.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/network.brs
+@@ -264,7 +264,7 @@ end sub
+ 
+ sub sendObjectAsJSON(value as Object, queueWhenDisconnected=true as boolean)
+     valueAsJSON = FormatJson(value)
+-    if m.config.inactivityDisconnect = true
++    if m.config <> invalid and m.config.inactivityDisconnect = true
+       excludedEvents = ["background", "bookmark", "videocomplete", "videoplaying", "videopaused", "videobuffering"]
+       if value.event <> invalid
+         for each excludedItem in excludedEvents
+@@ -277,7 +277,7 @@ sub sendObjectAsJSON(value as Object, queueWhenDisconnected=true as boolean)
+     end if
+     logMessage("Sending " + valueAsJSON + " over TCP connection")
+     ' Supress sending events except ping when internet down to avoid command flood when restored
+-    if not m.internetDown or value.event = "ping"
++    if m.internetDown = false or value.event = "ping"
+       sendJSON(valueAsJSON, queueWhenDisconnected)
+     end if
+ end sub
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/nodeEvents.brs b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/nodeEvents.brs
+index f8fc570..75209ae 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/source/nodeEvents.brs
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/source/nodeEvents.brs
+@@ -44,16 +44,13 @@ function onKey() as Boolean
+ end function
+ 
+ function handleOnKey() as Boolean
+-
+     key = m.global.key
+     m.lastUserActivityTime = m.clock.TotalSeconds()
+ 
+     if key = "none" then return true ' This is necessary to supress none event from firing off of MainScreen.xml
+                                      ' The event comes on the MessagePort via a value change in MainScreen.xml
+     if key = "back" then
+-        if m.player <> invalid and m.player.playerTask <> invalid
+-          ' Back button will be handled after player task invalidated.
+-          m.player.callFunc("requestStop", true)
++        if m.player <> invalid and m.player.callFunc("handleBackEvent")
+           return true
+         end if
+ 
+@@ -62,7 +59,6 @@ function handleOnKey() as Boolean
+         end if
+ 
+         setRequestSendingBack("back")
+-        return true
+     end if
+ 
+     if key = "options"
+@@ -124,10 +120,6 @@ function onTransferStatusChanged() as Boolean
+     if transferStatus.error <> invalid
+         if transferStatus.error = "failed_download"
+             if m.previousComponentArguments = invalid or m.componentLoadRetriesRemaining = 0
+-                #if EXPORT_PROFILER
+-                SendObjectAsJSON(createExportStatusEvent("failed - retries", m.exportSyncId, m.global.loadingDuration, m.previousComponentArguments.componentName))
+-                #end if
+-
+                 sendResponse(false, {loadstatus: "failed"})
+                 showError(transferStatus, m.previousComponentArguments)
+             else
+@@ -153,9 +145,6 @@ function onTransferStatusChanged() as Boolean
+         m.appLaunchCompleted = true
+         postSessionRecorderEvent("applicationStarted", createDeviceInfoObject())
+       endif
+-        #if EXPORT_PROFILER
+-        SendObjectAsJSON(createExportStatusEvent("success", m.exportSyncId, m.global.loadingDuration, m.previousComponentArguments.componentName))
+-        #end if
+       m.previousComponentArguments = invalid
+     end if
+ 
+diff --git a/Users/javanpoirier/youiengine/5.11.0/src/cloud/versionInfo b/Users/javanpoirier/youiengine/5.12.0/src/cloud/versionInfo
+index b9b9356..5a8a33b 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/src/cloud/versionInfo
++++ b/Users/javanpoirier/youiengine/5.12.0/src/cloud/versionInfo
+@@ -2,9 +2,9 @@
+ 
+ # this hash changes whenever a breaking change occurs on the client
+ # the value is set to the commit(SHA1) of the last breaking change to the client
+-client_sha1=899809a152
++client_sha1=7adb64fe5b
+ 
+ # client and server versions must match for a successful connection
+-client_version=5.11.0
++client_version=5.12.0
+ 
+ requires_firmware=8.1

@@ -130,7 +130,7 @@ const Diff = ({
           viewType={diffViewStyle}
           diffType={type}
           hunks={hunks}
-          widgets={getComments({ newPath, fromVersion, toVersion, appName })}
+          // widgets={getComments({ newPath, fromVersion, toVersion, appName })}
           optimizeSelection={true}
           selectedChanges={selectedChanges}
         >

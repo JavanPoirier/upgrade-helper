@@ -72,17 +72,30 @@ const DiffViewer = ({
     [appName]
   )
 
-  useEffect(() => {
+  useEffect(async () => {
     if (!showDiff) {
       return
     }
 
+    console.log('here')
     const fetchDiff = async () => {
       setLoading(true)
 
-      const response = await (
-        await fetch(getDiffPatchURL({ fromVersion, toVersion }))
-      ).text()
+      const files = ['ReactTemplateProject', 'cloud']
+
+      var response = ''
+      for await (const file of files) {
+        response += await // await fetch(getDiffPatchURL({ fromVersion, toVersion }))
+        (
+          await fetch(`http://localhost:8080/diffs/${file}.patch`, {
+            headers: {
+              Origin: 'http://localhost:3000'
+            }
+          })
+        ).text()
+      }
+
+      console.log('response', response)
 
       setDiff(
         parseDiff(replaceAppName(response)).sort(({ newPath }) =>

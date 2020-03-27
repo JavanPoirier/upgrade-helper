@@ -4,13 +4,12 @@ const os = require('os')
 const util = require('util')
 const mapDir = require('node-map-directory')
 const compareVersions = require('compare-versions')
-const exec = require('child_process').exec
+const exec = require('child_process').exec;
+const static = require('./node-static');
+const http = require('http')
 
-const engineUpgradeVersion = '5.12.0'
-const projectDir = path.join(os.homedir(), '/Desktop/Repos/network10')
-const projectCloudDir = path.join(projectDir, 'client')
+// const projectCloudDir = path.join(projectDir, 'client')
 
-const engineDir = path.join(os.homedir(), 'youiengine')
 const exlcudedEngineDir = ['.cli']
 const mappedEngineDirs = {
   cloud: {
@@ -28,15 +27,42 @@ const mappedEngineDirs = {
   }
 }
 
-var engineVersions
-var projectEngineVersion
-var _projectEngineVersion = '5.9.0'
+var engineVersions;
+var engineUpgradeVersion;
+var _engineUpgradeVersion = '5.12.0'
+var projectEngineVersion;
+var _projectEngineVersion = '5.9.0';
 
-getInstalledVersions()
-getPackageJson()
-compareCloudFiles()
-console.log(getUpgradableVersions(_projectEngineVersion, engineVersions))
-createGitDiff('5.9.0', '5.12.0')
+var server;
+
+function main() {
+
+}
+
+function serveDiffs() {
+  var fileServer = new static.Server('./server/public', { 
+    headers: { 
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Content-Disposition': 'inline',
+      'Access-Control-Allow-Origin': '*'
+    }});
+
+  server = http
+    .createServer(function(request, response) {
+      request
+        .addListener('end', function() {
+          fileServer.serve(request, response);
+        })
+        .resume()
+    })
+    .listen(8080);
+}
+
+// getInstalledVersions()
+// getPackageJson()
+// compareCloudFiles()
+// console.log(getUpgradableVersions(_projectEngineVersion, engineVersions))
+// createGitDiff('5.9.0', '5.12.0')
 
 function getInstalledVersions() {
   const dirs = fs.readdirSync(engineDir).filter(dir => {
@@ -117,3 +143,5 @@ function getUpgradableVersions(currentVersion, engineVersions) {
     compareVersions.compare(currentVersion, engineVersion, '<')
   )
 }
+
+module.exports = { serveDiffs };

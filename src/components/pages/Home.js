@@ -120,7 +120,7 @@ const Home = () => {
       </Container>
 
       <DiffViewer
-        showDiff={showDiff}
+        showDiff={true}
         fromVersion={fromVersion}
         toVersion={toVersion}
         appName={appName}

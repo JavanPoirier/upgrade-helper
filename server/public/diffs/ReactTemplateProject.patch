@@ -1,0 +1,98 @@
+diff --git a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/client/build.rb b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/client/build.rb
+index ade1cbe..d0f8ec7 100755
+--- a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/client/build.rb
++++ b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/client/build.rb
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env ruby
+-# © You i Labs Inc. 2000-2019. All rights reserved.
++# © You i Labs Inc. 2000-2020. All rights reserved.
+ 
+ require 'fileutils'
+ require 'optparse'
+diff --git a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/package.json b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/package.json
+index 06fc48a..6031222 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/package.json
++++ b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/package.json
+@@ -8,7 +8,7 @@
+ 	},
+ 	"dependencies": {
+ 		"@babel/core": "7.0.0",
+-		"@youi/react-native-youi": "5.11.0",
++		"@youi/react-native-youi": "5.12.0",
+ 		"babel-preset-react-native": "4.0.0",
+ 		"metro-react-native-babel-preset": "^0.45.0",
+ 		"react": "16.6.3",
+diff --git a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/CMakeLists.txt b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/CMakeLists.txt
+index 58f2de2..787c62f 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/CMakeLists.txt
++++ b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ # =============================================================================
+-# © You i Labs Inc. 2000-2019. All rights reserved.
++# © You i Labs Inc. 2000-2020. All rights reserved.
+ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+ 
+ include(Project.cmake)
+diff --git a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/SourceList.cmake b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/SourceList.cmake
+index b5fbce3..e57f6db 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/SourceList.cmake
++++ b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/SourceList.cmake
+@@ -1,5 +1,5 @@
+ # =============================================================================
+-# © You i Labs Inc. 2000-2019. All rights reserved.
++# © You i Labs Inc. 2000-2020. All rights reserved.
+ 
+ set (YI_PROJECT_SOURCE
+     src/App.cpp
+diff --git a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/build.rb b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/build.rb
+index d0dc72b..631775f 100755
+--- a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/build.rb
++++ b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/build.rb
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env ruby
+-# © You i Labs Inc. 2000-2019. All rights reserved.
++# © You i Labs Inc. 2000-2020. All rights reserved.
+ 
+ require 'optparse'
+ require 'ostruct'
+diff --git a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/reinstall.rb b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/reinstall.rb
+index 2a3d6de..5e2d41c 100755
+--- a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/reinstall.rb
++++ b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/reinstall.rb
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env ruby
+-# © You i Labs Inc. 2000-2019. All rights reserved.
++# © You i Labs Inc. 2000-2020. All rights reserved.
+ 
+ require 'optparse'
+ require 'ostruct'
+diff --git a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/src/App.cpp b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/src/App.cpp
+index 955e90a..bf1686e 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/src/App.cpp
++++ b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/src/App.cpp
+@@ -1,4 +1,4 @@
+-// © You i Labs Inc. 2000-2019. All rights reserved.
++// © You i Labs Inc. 2000-2020. All rights reserved.
+ #include "App.h"
+ 
+ #include <JSBundlingStrings.h>
+diff --git a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/src/App.h b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/src/App.h
+index b801682..bd4fa95 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/src/App.h
++++ b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/src/App.h
+@@ -1,4 +1,4 @@
+-// © You i Labs Inc. 2000-2019. All rights reserved.
++// © You i Labs Inc. 2000-2020. All rights reserved.
+ #ifndef _APP_H_
+ #define _APP_H_
+ 
+diff --git a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/src/AppFactory.cpp b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/src/AppFactory.cpp
+index 73dffb0..aa54b5e 100644
+--- a/Users/javanpoirier/youiengine/5.11.0/templates/ReactTemplateProject/youi/src/AppFactory.cpp
++++ b/Users/javanpoirier/youiengine/5.12.0/templates/ReactTemplateProject/youi/src/AppFactory.cpp
+@@ -1,4 +1,4 @@
+-// © You i Labs Inc. 2000-2019. All rights reserved.
++// © You i Labs Inc. 2000-2020. All rights reserved.
+ #include "AppFactory.h"
+ #include "App.h"
+ 

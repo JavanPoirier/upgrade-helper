@@ -3,7 +3,7 @@ import { Button } from 'antd'
 import queryString from 'query-string'
 import React, { Fragment, useEffect, useRef, useState } from 'react'
 import semver from 'semver/preload'
-import { RELEASES_URL } from '../../utils'
+// import { RELEASES_URL } from '../../utils'
 import { Select } from './'
 
 const Selectors = styled.div`
@@ -153,13 +153,6 @@ const doesVersionExist = ({ version, allVersions, minVersion }) => {
   }
 }
 
-const updateURLVersions = ({ fromVersion, toVersion }) => {
-  const pageURL = window.location.href.replace(window.location.search, '')
-  const newURL = `?from=${fromVersion}&to=${toVersion}`
-
-  window.history.replaceState(null, null, `${pageURL}${newURL}`)
-}
-
 const VersionSelector = ({ showDiff, showReleaseCandidates }) => {
   const [isLoading, setLoading] = useState(true)
   const [allVersions, setAllVersions] = useState([])
@@ -176,28 +169,13 @@ const VersionSelector = ({ showDiff, showReleaseCandidates }) => {
     const versionsInURL = getVersionsInURL()
 
     const fetchVersions = async () => {
-      const response = await fetch(RELEASES_URL)
+      // const latestVersion = allVersionsFromResponse[0]
+      // // If the version from URL is not valid then fallback to the latest
+      // const toVersionToBeSet = hasToVersionInURL
+      //   ? versionsInURL.toVersion
+      //   : latestVersion
 
-      const allVersionsFromResponse = (await response.text()).split('\n')
-
-      // Check if the versions provided in the URL are valid
-      const hasFromVersionInURL = doesVersionExist({
-        version: versionsInURL.fromVersion,
-        allVersions: allVersionsFromResponse
-      })
-      const hasToVersionInURL = doesVersionExist({
-        version: versionsInURL.toVersion,
-        allVersions: allVersionsFromResponse,
-        minVersion: versionsInURL.fromVersion
-      })
-
-      const latestVersion = allVersionsFromResponse[0]
-      // If the version from URL is not valid then fallback to the latest
-      const toVersionToBeSet = hasToVersionInURL
-        ? versionsInURL.toVersion
-        : latestVersion
-
-      setAllVersions(sanitizedVersions)
+      setAllVersions(['5.12.0'])
 
       // const upgradeableVersions = getUpgradableVersions(
       //   projectEngineVersion,
@@ -208,11 +186,12 @@ const VersionSelector = ({ showDiff, showReleaseCandidates }) => {
 
       setLoading(false)
 
-      const doesHaveVersionsInURL = hasFromVersionInURL && hasToVersionInURL
+      // const doesHaveVersionsInURL = hasFromVersionInURL && hasToVersionInURL
 
-      setHasVersionsFromURL(doesHaveVersionsInURL)
+      // setHasVersionsFromURL(doesHaveVersionsInURL)
 
-      if (doesHaveVersionsInURL) {
+      //if (doesHaveVersionsInURL) {
+      if (true) {
         upgradeButtonEl.current.props.onClick()
       }
     }
@@ -226,8 +205,10 @@ const VersionSelector = ({ showDiff, showReleaseCandidates }) => {
     }
 
     // const engineVersions = getInstalledVersions();
-    // setFromVersionList(engineVersions)
-    // setToVersionList(engineVersions)
+    //setFromVersionList(engineVersions)
+    //setToVersionList(engineVersions)
+    setFromVersionList(['5.11.0'])
+    setToVersionList(['5.12.0'])
   }, [
     isLoading,
     allVersions,
